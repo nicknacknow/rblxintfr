@@ -41,6 +41,7 @@ namespace RBX {
 		*/
 
 		void Initialise() {
+			if (this->ptr()) return;
 			int link_func = memscan::scan("535657E8????????8BD8E8????????")[0]; // this is the function directly after GetTaskScheduler !
 
 			// link_func contains 2 consecutive calls to TaskScheduler::singleton()

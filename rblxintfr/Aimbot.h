@@ -30,23 +30,38 @@ private:
 		RBX::Instance Instance; // The BasePart or Terrain cell that the ray intersected.
 		uintptr_t afk; // thingy of instance
 	};
+
+	struct RaycastParams
+	{
+		char pad_0x0000[0x1]; //0x0000
+		bool IgnoreWater = false; //0x0001 
+		BYTE dk1 = 0x53; //0x0002 2 n 3 r just random bytes
+		BYTE dk2 = 0x12; //0x0003 
+		bool WhitelistType = false; //0x0004  Blacklist (0) Whitelist (1)
+		char pad_0x0005[0x3]; //0x0005
+		DWORD FilterDescendantsInstances; //0x0008 
+		char pad_0x000C[0x4]; //0x000C
+		std::string CollisionGroup = std::string("Default"); //0x1295888 
+
+	}; //Size=0x0014
 public:
 	AimbotClass() { initialise(); }
-	float v1 = 0.f, v2 = 0.f, v3 = 0.f;
-	float v4 = 0.f, v5 = 0.f, v6 = 0.f;
+
 	bool GetClosestPlayerToMouse(RBX::Instance Players, RBX::Instance Mouse, RBX::Instance& target) {
 		RBX::Vector2 mousePos{ (float)Mouse.GetPropertyValue<int>("X"), (float)Mouse.GetPropertyValue<int>("Y") };
-		RBX::Instance workspace = Players.Parent().GetPropertyValue<int>("Workspace");
-		RBX::Instance CurrentCamera = workspace.GetPropertyValue<int>("CurrentCamera");
-		RBX::Reflection::BoundFuncDescriptor Raycast = workspace.FindBoundFuncDescriptor("Raycast");
-		RBX::Instance localPlayer = Players.GetPropertyValue<int>("LocalPlayer"); if (!localPlayer) return false;
-		RBX::Instance localCharacter = localPlayer.GetPropertyValue<int>("Character"); if (!localCharacter) return false;
-		RBX::Instance localHead = localCharacter.FindFirstChild("Head"); if (!localHead) localHead = localCharacter.GetPropertyValue<int>("PrimaryPart");
+		static RBX::Instance workspace;  if (!workspace.ptr()) workspace = Players.Parent().GetPropertyValue<int>("Workspace");
+		static RBX::Instance CurrentCamera; if(!CurrentCamera.ptr()) CurrentCamera = workspace.GetPropertyValue<int>("CurrentCamera");
+		static RBX::Reflection::BoundFuncDescriptor Raycast; if (!Raycast.ptr()) Raycast = workspace.FindBoundFuncDescriptor("Raycast");
+		static RBX::Instance localPlayer = Players.GetPropertyValue<int>("LocalPlayer"); if (!localPlayer.ptr()) return false;
+		static RBX::Instance localCharacter = localPlayer.GetPropertyValue<int>("Character"); if (!localCharacter.ptr()) return false;
+		RBX::Instance localHead = localCharacter.FindFirstChild("Head"); if (!localHead.ptr()) localHead = localCharacter.GetPropertyValue<int>("PrimaryPart");
 		RBX::Vector3 origin = localHead.GetCustomPropertyValue<RBX::Vector3>("Position");
 		
 		std::pair<float, RBX::Instance> best = { 9e9f, RBX::Instance() };
+		float closest_mag = 9e9f;
 		
 		for (RBX::Instance player : Players.GetChildren()) {
+			if (!(player.ptr() && player.GetClassDescriptor().ClassName() == "Player")) continue;
 			if (RBX::Instance character = player.GetPropertyValue<int>("Character")) {
 				RBX::Instance target = character.FindFirstChild(AimPart);
 				//if (!target) target = character.GetPropertyValue<int>("PrimaryPart");
@@ -58,10 +73,10 @@ public:
 				if (WallCheck) {
 					RBX::Vector3 vec = position - origin;
 					RBX::Vector3 direction = vec.unit() * vec.magnitude();
-					//std::vector<uintptr_t> FilterDescendantsInstances = {localCharacter.ptr(), 0, character.ptr(), 0};
+					std::vector<uintptr_t> FilterDescendantsInstances = {localCharacter.ptr(), 0, character.ptr(), 0};
 
-					//uintptr_t raycastParams = (uintptr_t)VirtualAlloc(0, 0x100, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE); //(uintptr_t)malloc(40);
-					/**(bool*)(raycastParams + 0x1) = false; // IgnoreWater
+					/*uintptr_t raycastParams = (uintptr_t)VirtualAlloc(0, 0x100, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE); //(uintptr_t)malloc(40);
+					*(bool*)(raycastParams + 0x1) = false; // IgnoreWater
 					*(BYTE*)(raycastParams + 0x2) = 0x53; // dk1
 					*(BYTE*)(raycastParams + 0x3) = 0x12; // dk2
 
@@ -69,15 +84,19 @@ public:
 					*(uintptr_t*)(raycastParams + 0x8) = (uintptr_t)&FilterDescendantsInstances;
 					*(std::string*)(raycastParams + 0x10) = std::string("Default");*/
 
-					//static RaycastResult ret;
-					//int lol = reinterpret_cast<int(__thiscall*)(int, RaycastResult*, RBX::Vector3*, RBX::Vector3*, int)>(Raycast.Func())(workspace.ptr(), &ret, &origin, &direction, raycastParams);
+					RaycastParams* raycastParams = new RaycastParams();
+					raycastParams->FilterDescendantsInstances = (uintptr_t)&FilterDescendantsInstances;
 
+					static RaycastResult ret;
+					int lol = reinterpret_cast<int(__thiscall*)(int, RaycastResult*, RBX::Vector3*, RBX::Vector3*, RaycastParams*)>(Raycast.Func())(workspace.ptr(), &ret, &origin, &direction, raycastParams);
+
+					//delete[] raycastParams;
 					//VirtualFree((LPVOID)raycastParams, 0, MEM_RELEASE);
 					//free((void*)raycastParams);
 
 					//printf("%p %p\n", &ret, &lol);
 
-					//if (ret.Instance) continue;
+					if (ret.Instance) continue;
 
 
 
@@ -89,27 +108,40 @@ public:
 					
 				}
 				
-				/*DWORD ret = CurrentCamera.CallBoundFunc("WorldToViewportPoint", position.x, position.y, position.z);
+				DWORD ret = CurrentCamera.CallBoundFunc("WorldToViewportPoint", position.x, position.y, position.z);
 				RBX::Vector3 vec3 = *(RBX::Vector3*)(readloc(ret) + 8); // z is magnitude
 				RBX::Vector2 vec2{ vec3.x, vec3.y };
 
+				if (vec3.z < closest_mag) closest_mag = vec3.z;
+				else continue;
+
 				if (((vec2 - mousePos).length() < best.first)) {
 					best = { (vec2 - mousePos).length(), player };
-				}*/
+				}
 			}
 		}
 
-		//target = best.second;
-		//return !!best.second.ptr();
-		return false;
+		target = best.second;
+		return !!best.second.ptr();
+		//return false;
 	}
-private:
+
+	bool isActive() {
+		return GetAsyncKeyState(aimbotKey);
+	}
+
 	const char* AimPart = "Head";
 	bool WallCheck = true;
-	BYTE vkKey = 0x43; // c i think ?
+	bool AutoShoot = true;
+private:
+	BYTE aimbotKey = 0x12; //0x43; // c i think ? https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
 
 	void initialise() {
-		//AddCheck("LocalPlayerCheck", [](RBX::Instance player) { return player.ptr() != player.Parent().GetPropertyValue<int>("LocalPlayer"); });
+		AddCheck("LocalPlayerCheck", [](RBX::Instance player) { return player.ptr() != player.Parent().GetPropertyValue<int>("LocalPlayer"); });
+		AddCheck("TeamCheck", [](RBX::Instance player) {
+			RBX::Instance LocalPlayer = player.Parent().GetPropertyValue<int>("LocalPlayer");
+			return player.GetPropertyValue<int>("Team") != LocalPlayer.GetPropertyValue<int>("Team");
+			});
 	}
 };
 

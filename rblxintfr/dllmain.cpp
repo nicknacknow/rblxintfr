@@ -169,23 +169,26 @@ bool testfunc(int a1, RBX::TaskScheduler::Job self) { // virtual TaskScheduler::
 		RBX::Instance Players = DataModel.FindFirstChildOfClass("Players");
 		RBX::Instance Workspace = DataModel.GetPropertyValue<int>("Workspace");
 
-		RBX::Instance Baseplate = Workspace.FindFirstChild("Baseplate");
+		//RBX::Instance Baseplate = Workspace.FindFirstChild("Baseplate");
 		if (RBX::Instance LocalPlayer = Players.GetPropertyValue<int>("LocalPlayer")) { // i hate this sm
 			if (RBX::Instance Character = LocalPlayer.GetPropertyValue<int>("Character")) {
 				if (RBX::Instance PrimaryPart = Character.GetPropertyValue<int>("PrimaryPart")) {
 					if (RBX::Instance CurrentCamera = Workspace.GetPropertyValue<int>("CurrentCamera")) {
 						if (RBX::Instance Mouse = LocalPlayer.CallBoundFunc("GetMouse")) {
 							RBX::Instance target;
-							if (aimbot->GetClosestPlayerToMouse(Players, Mouse, target)) {
+							if (aimbot->isActive() && aimbot->GetClosestPlayerToMouse(Players, Mouse, target)) {
 								// getclosestplayertomouse succeed
 
-								/*if (RBX::Instance Character = target.GetPropertyValue<int>("Character")) {
-									if (RBX::Instance PrimaryPart = Character.GetPropertyValue<int>("PrimaryPart")) {
+								if (RBX::Instance Character = target.GetPropertyValue<int>("Character")) {
+									if (RBX::Instance targetPart = Character.FindFirstChild(aimbot->AimPart)) { //RBX::Instance PrimaryPart = Character.GetPropertyValue<int>("PrimaryPart")
 										RBX::CoordinateFrame cframe = CurrentCamera.GetCustomPropertyValue<RBX::CoordinateFrame>("CFrame");
-										cframe.lookAt(PrimaryPart.GetCustomPropertyValue<RBX::Vector3>("Position"));
+										cframe.lookAt(targetPart.GetCustomPropertyValue<RBX::Vector3>("Position"));
 										CurrentCamera.SetCustomPropertyValue<RBX::CoordinateFrame>("CFrame", cframe);
+
+										if (aimbot->AutoShoot)
+
 									}
-								}*/
+								}
 							}
 							/*RBX::Instance instance_ret;
 							if (ClosestPlayer->Get(Players, Mouse, instance_ret))
@@ -247,7 +250,7 @@ void init() {
 
 	RBX::TaskScheduler scheduler;
 
-	MemCheckBypass memBypass;
+	//MemCheckBypass memBypass;
 	//memBypass.Enable();
 
 	RBX::TaskScheduler::Job RenderJob = scheduler.FindJobByName("Render");
@@ -296,6 +299,8 @@ void init() {
 	// work on : GetProperty "Name", CallBoundFunc "IsA"
 	// hook BoundFunc's that pass a func as a param to see how funcs r handled
 	// use MemCheckBypass to call functions like roblox's FindFirstChild so it doesn't wipe it
+	// work on : calling Instance.new ? make guis lol
+	// silent aimbot by hooking Mouse.Hit
 
 	// work on : remote-related calls etc
 	/*
