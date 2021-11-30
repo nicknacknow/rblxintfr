@@ -133,6 +133,12 @@ namespace RBX {
 			uintptr_t CallFunc;
 		};
 
+		class EventDescDescriptor : public Descriptor {
+		public:
+			EventDescDescriptor() : Descriptor() {}
+			EventDescDescriptor(uintptr_t p) : Descriptor(p) {}
+		};
+
 		class ClassDescriptor : public ClassHandler {
 		public:
 			ClassDescriptor(uintptr_t p) : ClassHandler((p)) {}
@@ -158,16 +164,29 @@ namespace RBX {
 				return BoundFuncDescriptors;
 			}
 
+			std::vector<EventDescDescriptor> GetEventDescDescriptors() {
+				std::vector<EventDescDescriptor> EventDescDescriptors{};
+
+				for (uintptr_t i = readloc(this->ptr() + 0x78); i != readloc(this->ptr() + 0x7C); i += 4) {
+					EventDescDescriptors.emplace_back(i);
+				}
+
+				return EventDescDescriptors;
+			}
+
 			PropertyDescriptor FindPropertyDescriptor(std::string str) {
 				for (PropertyDescriptor pd : this->GetPropertyDescriptors())
 					if (!pd.Name().compare(str)) return pd;
 			}
 
 			BoundFuncDescriptor FindBoundFuncDescriptor(std::string str) {
-				for (BoundFuncDescriptor bfd : this->GetBoundFuncDescriptors()) {
-					//printf("%s\n", bfd.Name().c_str());
+				for (BoundFuncDescriptor bfd : this->GetBoundFuncDescriptors())
 					if (!bfd.Name().compare(str)) return bfd;
-				}
+			}
+
+			EventDescDescriptor FindEventDescDescriptor(std::string str) {
+				for (EventDescDescriptor bfd : this->GetEventDescDescriptors())
+					if (!bfd.Name().compare(str)) return bfd;
 			}
 		};
 	}
@@ -184,6 +203,7 @@ namespace RBX {
 		mem_add(Reflectance, float, 0xD0);
 
 		addptr(Parent, Instance, 0x34);
+		addptr(Ref, uintptr_t, 0x8);
 
 		addstr(Name, 0x28);
 
@@ -195,6 +215,10 @@ namespace RBX {
 
 		RBX::Reflection::BoundFuncDescriptor FindBoundFuncDescriptor(std::string name) {
 			return this->GetClassDescriptor().FindBoundFuncDescriptor(name);
+		}
+
+		RBX::Reflection::EventDescDescriptor FindEventDescDescriptor(std::string name) {
+			return this->GetClassDescriptor().FindEventDescDescriptor(name);
 		}
 
 		template<class T>

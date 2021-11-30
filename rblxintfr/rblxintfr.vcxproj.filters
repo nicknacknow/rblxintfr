@@ -62,5 +62,8 @@
     <ClInclude Include="CoordinateFrame.h">
       <Filter>Header Files\g3dimpl</Filter>
     </ClInclude>
+    <ClInclude Include="Triggerbot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

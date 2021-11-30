@@ -9,7 +9,7 @@ namespace RBX {
 		public:
 			Job(uintptr_t p) : ClassHandler(p), vtable(p) {}
 			std::string Name() {
-				return *(std::string*)(this->ptr() + 0x10);
+				return read_string(this->ptr() + 0x10);
 			}
 			RBX::Instance GetDataModel() {
 				return readloc(this->ptr() + 0x28) + 0x4;

@@ -168,6 +168,7 @@
     <ClInclude Include="Memory.h" />
     <ClInclude Include="mscan.h" />
     <ClInclude Include="TaskScheduler.h" />
+    <ClInclude Include="Triggerbot.h" />
     <ClInclude Include="Vector2.h" />
     <ClInclude Include="Vector3.h" />
   </ItemGroup>

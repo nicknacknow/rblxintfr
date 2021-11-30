@@ -3,25 +3,6 @@
 
 class AimbotClass : public Functions::SingletonHelper {
 private:
-	uintptr_t craftRaycastParams(bool ignoreWater, bool whitelistType, std::vector<uintptr_t> filterDescendantsInstances) {
-		/*std::vector<uintptr_t> realFilterDescendantsInstances;
-		for (RBX::Instance i : filterDescendantsInstances) {
-			realFilterDescendantsInstances.push_back(i.ptr());
-			realFilterDescendantsInstances.push_back(0);
-		}*/
-
-		static uintptr_t raycastParams = (uintptr_t)VirtualAlloc(0, 0x100, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE); //(uintptr_t)malloc(40);
-		*(bool*)(raycastParams + 0x1) = ignoreWater; // IgnoreWater
-		*(BYTE*)(raycastParams + 0x2) = 0x53; // dk1
-		*(BYTE*)(raycastParams + 0x3) = 0x12; // dk2
-
-		*(bool*)(raycastParams + 0x4) = whitelistType; // Blacklist (0) Whitelist (1)
-		*(uintptr_t*)(raycastParams + 0x8) = (uintptr_t)&filterDescendantsInstances;
-		*(std::string*)(raycastParams + 0x10) = std::string("Default");
-
-		return raycastParams;
-	}
-
 	struct RaycastResult {
 		RBX::Vector3 Position; // The world space point at which the intersection occurred, usually a point directly on the surface of the instance.
 		RBX::Vector3 Normal; // The normal vector of the intersected face.
@@ -90,12 +71,6 @@ public:
 					static RaycastResult ret;
 					int lol = reinterpret_cast<int(__thiscall*)(int, RaycastResult*, RBX::Vector3*, RBX::Vector3*, RaycastParams*)>(Raycast.Func())(workspace.ptr(), &ret, &origin, &direction, raycastParams);
 
-					//delete[] raycastParams;
-					//VirtualFree((LPVOID)raycastParams, 0, MEM_RELEASE);
-					//free((void*)raycastParams);
-
-					//printf("%p %p\n", &ret, &lol);
-
 					if (ret.Instance) continue;
 
 
@@ -123,18 +98,18 @@ public:
 
 		target = best.second;
 		return !!best.second.ptr();
-		//return false;
 	}
 
 	bool isActive() {
-		return GetAsyncKeyState(aimbotKey);
+		return this->active ? GetAsyncKeyState(aimbotKey) : false;
 	}
 
 	const char* AimPart = "Head";
 	bool WallCheck = true;
 	bool AutoShoot = true;
+	bool active = true;
 private:
-	BYTE aimbotKey = 0x12; //0x43; // c i think ? https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+	BYTE aimbotKey = VK_MENU; // https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
 
 	void initialise() {
 		AddCheck("LocalPlayerCheck", [](RBX::Instance player) { return player.ptr() != player.Parent().GetPropertyValue<int>("LocalPlayer"); });

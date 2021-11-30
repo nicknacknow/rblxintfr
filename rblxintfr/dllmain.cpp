@@ -164,6 +164,7 @@ static int cripwalk(RBX::Instance Workspace, static RBX::Vector3 origin, RBX::Ve
 	//return readloc(readloc(b) + 8);
 }
 #include "Aimbot.h"
+#include "Triggerbot.h"
 bool testfunc(int a1, RBX::TaskScheduler::Job self) { // virtual TaskScheduler::StepResult step(const Stats& stats);
 	if (RBX::Instance DataModel = self.GetDataModel()) {
 		RBX::Instance Players = DataModel.FindFirstChildOfClass("Players");
@@ -185,11 +186,20 @@ bool testfunc(int a1, RBX::TaskScheduler::Job self) { // virtual TaskScheduler::
 										cframe.lookAt(targetPart.GetCustomPropertyValue<RBX::Vector3>("Position"));
 										CurrentCamera.SetCustomPropertyValue<RBX::CoordinateFrame>("CFrame", cframe);
 
-										if (aimbot->AutoShoot)
-
+										if (aimbot->AutoShoot) {
+											// either mouse click
+											// or stimulate an ingame mouseclick by calling desc_Mouse_Button1Down
+											// or http://www.cplusplus.com/forum/windows/24162/
+										}
 									}
 								}
 							}
+
+
+							if (triggerbot->isActive() && triggerbot->Step(Players, Mouse)) {
+								triggerbot->Action();
+							}
+
 							/*RBX::Instance instance_ret;
 							if (ClosestPlayer->Get(Players, Mouse, instance_ret))
 								printf("%s\n", instance_ret.Name().c_str());*/
@@ -254,14 +264,14 @@ void init() {
 	//memBypass.Enable();
 
 	RBX::TaskScheduler::Job RenderJob = scheduler.FindJobByName("Render");
-	targetFunc = vftable_hook(RenderJob.ptr(), (DWORD)&testfunc, 4, 20);
+	//targetFunc = vftable_hook(RenderJob.ptr(), (DWORD)&testfunc, 4, 20);
 
-	RBX::Instance workspace = RenderJob.GetDataModel().FindFirstChildOfClass("Workspace");
+	/*RBX::Instance workspace = RenderJob.GetDataModel().FindFirstChildOfClass("Workspace");
 
-	RBX::Reflection::BoundFuncDescriptor Raycast = workspace.FindBoundFuncDescriptor("Raycast");
-	printf("Raycast: %p\n", Raycast.ptr());
-	//targetFunc = Raycast.Func();
-	//*(uintptr_t*)(Raycast + 0x40) = (uintptr_t)&fastcallHook;
+	RBX::Reflection::BoundFuncDescriptor GetPlayerFromCharacter = workspace.Parent().FindFirstChildOfClass("Players").FindBoundFuncDescriptor("GetPlayerFromCharacter");
+	printf("Raycast: %p\n", GetPlayerFromCharacter.ptr());
+	targetFunc = GetPlayerFromCharacter.Func();
+	*(uintptr_t*)(GetPlayerFromCharacter + 0x40) = (uintptr_t)&fastcallHook;*/
 
 	/*RBX::Instance PrimaryPart = workspace.FindFirstChild("bobo12").GetPropertyValue<int>("PrimaryPart");
 	RBX::Vector3 pos = PrimaryPart.GetCustomPropertyValue<RBX::Vector3>("Position");
@@ -310,7 +320,7 @@ void init() {
 
 	// you can get luastate by hooking the vftable of any descriptor !
 
-	/*RBX::Instance DataModel = scheduler.FindJobByName("Render").GetDataModel();
+	RBX::Instance DataModel = scheduler.FindJobByName("Render").GetDataModel();
 	RBX::Instance Players = DataModel.FindFirstChildOfClass("Players");
 	RBX::Instance Workspace = DataModel.GetPropertyValue<int>("Workspace");
 	RBX::Instance RunService = DataModel.FindFirstChildOfClass("RunService"); // need to work on GetService
@@ -324,7 +334,12 @@ void init() {
 	RBX::Instance Humanoid = Character.FindFirstChildOfClass("Humanoid");
 	RBX::Instance PrimaryPart = Character.GetPropertyValue<int>("PrimaryPart");
 
-	printf("GetMouse :  %p\n", LocalPlayer.FindBoundFuncDescriptor("GetMouse").ptr());*/
+	RBX::Reflection::EventDescDescriptor Button1Down = Mouse.FindEventDescDescriptor("Button1Down");
+
+	targetFunc = vftable_hook(Button1Down.ptr(), (DWORD)&fastcallHook, 1, 20);
+
+	// use memcheck and hook this function, see what it does (interested in v9) https://i.imgur.com/41NHGA1.png
+
 
 	// lets work on GetService
 	//RBX::Reflection::BoundFuncDescriptor GetServiceDescriptor = DataModel.FindBoundFuncDescriptor("GetService");
